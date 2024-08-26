@@ -2,8 +2,9 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta viewport="width=device-width, initial-scale=1.0">
     <title>Notes</title>
+    <link href="https://cdn.quilljs.com/1.3.6/quill.snow.css" rel="stylesheet">
     <style>
         #sidebar {
             float: left;
@@ -16,11 +17,37 @@
             margin-left: 210px;
             padding: 20px;
         }
+        .note-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .note-title {
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            max-width: 120px;
+        }
+        .note-button {
+            margin-left: 5px;
+            font-size: 10px;
+        }
         li.note-item:hover {
             background-color: #ddd;
             cursor: pointer;
         }
-        #edit-form {
+        #editor-toolbar {
+            display: none;
+            background-color: #f4f4f4;
+            border: 1px solid #ccc;
+            padding: 5px;
+        }
+        .ql-toolbar.ql-snow {
+            border-radius: 5px;
+            display: flex;
+            justify-content: start;
+        }
+        #editor-container {
             display: none;
         }
     </style>
@@ -30,48 +57,85 @@
         <h2>Notes</h2>
         <ul>
         {% for note in notes %}
-            <li class="note-item" onclick="fetchNoteDetails('{{ note.id }}')">{{ note.title }}</li>
+            <li class="note-item">
+                <span class="note-title" onclick="fetchNoteDetails('{{ note.id }}')">{{ note.title }}</span>
+                <button class="note-button" onclick="event.stopPropagation(); editNote('{{ note.id }}')">Edit</button>
+                <button class="note-button" onclick="event.stopPropagation(); deleteNote('{{ note.id }}')">Delete</button>
+            </li>
         {% endfor %}
         </ul>
     </div>
     <div id="note-display">
-        <h2>Note Details</h2>
         <div id="note-view">
             <h3 id="view-title"></h3>
-            <p id="view-content"></p>
-            <button onclick="editNote()">Edit</button>
+            <div id="view-content"></div>
         </div>
         <div id="edit-form">
             <form action="" method="post">
                 <input type="hidden" id="note_id" name="note_id">
-                <label for="title">Title:</label><br>
-                <input type="text" id="edit-title" name="title"><br>
-                <label for="content">Content:</label><br>
-                <textarea id="edit-content" name="content"></textarea><br><br>
+                <input type="text" id="edit-title" name="title" style="width: 100%; margin-bottom: 10px;">
+                <div id="editor-toolbar">
+                    <button class="ql-bold">Bold</button>
+                    <button class="ql-italic">Italic</button>
+                    <button class="ql-underline">Underline</button>
+                </div>
+                <div id="editor-container"></div>
+                <input type="hidden" id="edit-content" name="content">
                 <input type="submit" value="Save Changes">
             </form>
         </div>
     </div>
 
+    <script src="https://cdn.quilljs.com/1.3.6/quill.js"></script>
     <script>
+        var quill = new Quill('#editor-container', {
+            theme: 'snow',
+            modules: {
+                toolbar: '#editor-toolbar'
+            }
+        });
+
+        document.querySelector('form').onsubmit = function() {
+            var content = document.querySelector('input[name=content]');
+            var title = document.querySelector('input[name=title]');
+            content.value = quill.root.innerHTML;
+            title.value = document.getElementById('edit-title').value;
+        };
+
         function fetchNoteDetails(noteId) {
             fetch(`/notes/${noteId}`)
                 .then(response => response.json())
                 .then(data => {
+                    document.getElementById('view-title').innerText = data.title;
+                    document.getElementById('view-content').innerHTML = data.content;
                     document.getElementById('note-view').style.display = 'block';
                     document.getElementById('edit-form').style.display = 'none';
-                    document.getElementById('view-title').innerText = data.title;
-                    document.getElementById('view-content').innerText = data.content;
-                    document.querySelector('#edit-form form').action = `/notes/${data.id}/update`;
-                    document.getElementById('edit-title').value = data.title;
-                    document.getElementById('edit-content').value = data.content;
                 })
                 .catch(error => console.error('Error:', error));
         }
 
-        function editNote() {
-            document.getElementById('note-view').style.display = 'none';
-            document.getElementById('edit-form').style.display = 'block';
+        function editNote(noteId) {
+            fetch(`/notes/${noteId}`)
+                .then(response => response.json())
+                .then(data => {
+                    document.getElementById('note-view').style.display = 'none';
+                    document.getElementById('edit-form').style.display = 'block';
+                    document.getElementById('editor-container').style.display = 'block';
+                    document.getElementById('editor-toolbar').style.display = 'block';
+                    document.querySelector('#edit-form form').action = `/notes/${noteId}/update`;
+                    document.getElementById('note_id').value = noteId;
+                    document.getElementById('edit-title').value = data.title;
+                    quill.root.innerHTML = data.content;
+                })
+                .catch(error => console.error('Error:', error));
+        }
+
+        function deleteNote(noteId) {
+            if (confirm('Are you sure you want to delete this note?')) {
+                fetch(`/notes/${noteId}/delete`, { method: 'POST' })
+                    .then(response => response.redirected ? window.location.href = response.url : null)
+                .catch(error => console.error('Error:', error));
+            }
         }
     </script>
 </body>
