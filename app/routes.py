@@ -21,4 +21,12 @@ def add_note():
 @bp.route('/notes/<int:id>', methods=['GET'])
 def get_note(id):
     note = Note.query.get_or_404(id)
-    return jsonify({'title': note.title, 'content': note.content})
+    return jsonify({'id': note.id, 'title': note.title, 'content': note.content})
+
+@bp.route('/notes/<int:id>/update', methods=['POST'])
+def update_note(id):
+    note = Note.query.get_or_404(id)
+    note.title = request.form['title']
+    note.content = request.form['content']
+    db.session.commit()
+    return redirect(url_for('note.get_notes'))

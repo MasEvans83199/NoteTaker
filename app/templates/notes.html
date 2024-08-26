@@ -20,6 +20,9 @@
             background-color: #ddd;
             cursor: pointer;
         }
+        #edit-form {
+            display: none;
+        }
     </style>
 </head>
 <body>
@@ -27,31 +30,48 @@
         <h2>Notes</h2>
         <ul>
         {% for note in notes %}
-            <li class="note-item" onclick="displayNote('{{ note.id }}')">{{ note.title }}</li>
+            <li class="note-item" onclick="fetchNoteDetails('{{ note.id }}')">{{ note.title }}</li>
         {% endfor %}
         </ul>
     </div>
     <div id="note-display">
-        <h2>Add a Note</h2>
-        <form action="/notes" method="post">
-            <label for="title">Title:</label><br>
-            <input type="text" id="title" name="title"><br>
-            <label for="content">Content:</label><br>
-            <textarea id="content" name="content"></textarea><br><br>
-            <input type="submit" value="Submit">
-        </form>
+        <h2>Note Details</h2>
+        <div id="note-view">
+            <h3 id="view-title"></h3>
+            <p id="view-content"></p>
+            <button onclick="editNote()">Edit</button>
+        </div>
+        <div id="edit-form">
+            <form action="" method="post">
+                <input type="hidden" id="note_id" name="note_id">
+                <label for="title">Title:</label><br>
+                <input type="text" id="edit-title" name="title"><br>
+                <label for="content">Content:</label><br>
+                <textarea id="edit-content" name="content"></textarea><br><br>
+                <input type="submit" value="Save Changes">
+            </form>
+        </div>
     </div>
 
     <script>
-        function displayNote(noteId) {
-            // JavaScript to fetch and display the note details from Flask
+        function fetchNoteDetails(noteId) {
             fetch(`/notes/${noteId}`)
                 .then(response => response.json())
                 .then(data => {
-                    document.querySelector('#note-display').innerHTML = 
-                        `<h2>${data.title}</h2><p>${data.content}</p>`;
+                    document.getElementById('note-view').style.display = 'block';
+                    document.getElementById('edit-form').style.display = 'none';
+                    document.getElementById('view-title').innerText = data.title;
+                    document.getElementById('view-content').innerText = data.content;
+                    document.querySelector('#edit-form form').action = `/notes/${data.id}/update`;
+                    document.getElementById('edit-title').value = data.title;
+                    document.getElementById('edit-content').value = data.content;
                 })
                 .catch(error => console.error('Error:', error));
+        }
+
+        function editNote() {
+            document.getElementById('note-view').style.display = 'none';
+            document.getElementById('edit-form').style.display = 'block';
         }
     </script>
 </body>
