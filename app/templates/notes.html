@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Notes</title>
+    <style>
+        #sidebar {
+            float: left;
+            width: 200px;
+            height: 100vh;
+            overflow: auto;
+            background-color: #f0f0f0;
+        }
+        #note-display {
+            margin-left: 210px;
+            padding: 20px;
+        }
+        li.note-item:hover {
+            background-color: #ddd;
+            cursor: pointer;
+        }
+    </style>
+</head>
+<body>
+    <div id="sidebar">
+        <h2>Notes</h2>
+        <ul>
+        {% for note in notes %}
+            <li class="note-item" onclick="displayNote('{{ note.id }}')">{{ note.title }}</li>
+        {% endfor %}
+        </ul>
+    </div>
+    <div id="note-display">
+        <h2>Add a Note</h2>
+        <form action="/notes" method="post">
+            <label for="title">Title:</label><br>
+            <input type="text" id="title" name="title"><br>
+            <label for="content">Content:</label><br>
+            <textarea id="content" name="content"></textarea><br><br>
+            <input type="submit" value="Submit">
+        </form>
+    </div>
+
+    <script>
+        function displayNote(noteId) {
+            // JavaScript to fetch and display the note details from Flask
+            fetch(`/notes/${noteId}`)
+                .then(response => response.json())
+                .then(data => {
+                    document.querySelector('#note-display').innerHTML = 
+                        `<h2>${data.title}</h2><p>${data.content}</p>`;
+                })
+                .catch(error => console.error('Error:', error));
+        }
+    </script>
+</body>
+</html>
